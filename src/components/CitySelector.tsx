@@ -11,7 +11,7 @@ type CitySelectorProps = {
 export function CitySelector({ cities, selectedCityId, onSelectCity }: CitySelectorProps) {
   return (
     <nav aria-label="Saved cities" className="overflow-x-auto pb-1">
-      <div className="flex min-w-max gap-1.5 rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+      <div className="flex min-w-max gap-1.5 rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.32)] backdrop-blur-xl md:min-w-0 md:flex-wrap">
         {cities.map((city) => {
           const isSelected = city.id === selectedCityId;
 
@@ -19,7 +19,7 @@ export function CitySelector({ cities, selectedCityId, onSelectCity }: CitySelec
             <button
               key={city.id}
               className={[
-                "group flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-100/60",
+                "group flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-100/60 lg:px-3.5",
                 isSelected
                   ? "bg-zinc-100 text-zinc-950 shadow-sm"
                   : "text-zinc-400 hover:bg-zinc-800/80 hover:text-white",

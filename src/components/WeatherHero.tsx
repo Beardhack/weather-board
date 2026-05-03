@@ -50,35 +50,36 @@ export function WeatherHero({
               ) : null}
             </div>
 
-            <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-sm font-medium uppercase text-zinc-500">Now in</p>
-                <h2 className="mt-1 max-w-full text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  {city.name}
-                </h2>
-                <div className="mt-3 flex items-center gap-3 text-base font-medium text-zinc-300">
+            <div className="mt-6">
+              <p className="text-sm font-medium uppercase text-zinc-500">Now in</p>
+              <h2 className="mt-1 max-w-[12ch] text-balance text-4xl font-semibold leading-[0.98] tracking-tight text-white sm:text-5xl lg:max-w-none lg:text-6xl">
+                {city.name}
+              </h2>
+
+              <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+                <div className="flex min-w-0 items-center gap-3 text-base font-medium text-zinc-300">
                   <PixelWeatherGlyph
                     condition={current.conditionKey}
                     isDay={current.isDay}
                     size="sm"
                     label={current.conditionLabel}
                   />
-                  <span>{current.conditionLabel}</span>
+                  <span className="min-w-0">{current.conditionLabel}</span>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4 sm:justify-end">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-zinc-700/80 bg-zinc-900/80 shadow-inner sm:h-24 sm:w-24">
-                  <PixelWeatherGlyph
-                    condition={current.conditionKey}
-                    isDay={current.isDay}
-                    size="md"
-                    label={current.conditionLabel}
-                  />
+                <div className="flex items-center gap-4 xl:justify-end">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-zinc-700/80 bg-zinc-900/80 shadow-inner sm:h-24 sm:w-24">
+                    <PixelWeatherGlyph
+                      condition={current.conditionKey}
+                      isDay={current.isDay}
+                      size="md"
+                      label={current.conditionLabel}
+                    />
+                  </div>
+                  <p className="text-7xl font-semibold leading-none tracking-tight text-white sm:text-8xl">
+                    {formatTemperature(current.temperature)}
+                  </p>
                 </div>
-                <p className="text-7xl font-semibold leading-none tracking-tight text-white sm:text-8xl">
-                  {formatTemperature(current.temperature)}
-                </p>
               </div>
             </div>
           </div>
@@ -104,26 +105,26 @@ export function WeatherHero({
             label={`${current.conditionLabel} in ${city.name}`}
           />
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase text-zinc-500">Last updated</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {formatLocalDateTime(city.timezone, weather.fetchedAt)}
-              </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase text-zinc-500">Last updated</p>
+                <p className="mt-1 text-lg font-semibold text-white">
+                  {formatLocalDateTime(city.timezone, weather.fetchedAt)}
+                </p>
+              </div>
+              <RefreshCw
+                aria-hidden="true"
+                className={["h-5 w-5 text-sky-100", isRefreshing ? "animate-spin" : ""].join(" ")}
+              />
             </div>
-            <RefreshCw
-              aria-hidden="true"
-              className={["h-5 w-5 text-sky-100", isRefreshing ? "animate-spin" : ""].join(" ")}
-            />
-          </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <HeroStat
-              label="Humidity"
-              value={current.humidity === null ? "-" : `${Math.round(current.humidity)}%`}
-            />
-            <HeroStat label="Wind" value={`${Math.round(current.windSpeed)} mph`} />
-          </div>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <HeroStat
+                label="Humidity"
+                value={current.humidity === null ? "-" : `${Math.round(current.humidity)}%`}
+              />
+              <HeroStat label="Wind" value={`${Math.round(current.windSpeed)} mph`} />
+            </div>
           </div>
         </div>
       </div>
