@@ -184,7 +184,7 @@ export function PixelWeatherScene({
   const spriteName = getSpriteName(condition, isDay);
 
   return (
-    <div className="pixel-panel relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/80 p-4">
+    <div className="pixel-panel relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 sm:p-4">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[length:12px_12px]" />
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-300 via-yellow-200 to-pink-300" />
       <div className="relative flex items-center justify-between gap-4">
@@ -203,7 +203,7 @@ export function PixelWeatherScene({
         </div>
       </div>
       <div
-        className="relative mt-5 flex min-h-[132px] items-center justify-center rounded-md border border-zinc-800 bg-[#111827]"
+        className="relative mt-4 flex min-h-[112px] items-center justify-center rounded-md border border-zinc-800 bg-[#111827] sm:mt-5 sm:min-h-[132px]"
         aria-label={label}
         role="img"
       >

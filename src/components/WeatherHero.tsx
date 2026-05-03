@@ -29,7 +29,7 @@ export function WeatherHero({
   const current = weather.current;
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl sm:p-7">
+    <section className="relative overflow-hidden rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl sm:p-7">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/70 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(125,211,252,0.18),transparent_30%),radial-gradient(circle_at_82%_4%,rgba(253,224,71,0.14),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.07),transparent_42%)]" />
 
@@ -67,8 +67,8 @@ export function WeatherHero({
                   <span className="min-w-0">{current.conditionLabel}</span>
                 </div>
 
-                <div className="flex items-center gap-4 xl:justify-end">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-zinc-700/80 bg-zinc-900/80 shadow-inner sm:h-24 sm:w-24">
+                <div className="flex items-center gap-3 xl:justify-end">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-zinc-700/80 bg-zinc-900/80 shadow-inner sm:h-24 sm:w-24">
                     <PixelWeatherGlyph
                       condition={current.conditionKey}
                       isDay={current.isDay}
@@ -76,7 +76,7 @@ export function WeatherHero({
                       label={current.conditionLabel}
                     />
                   </div>
-                  <p className="text-7xl font-semibold leading-none tracking-tight text-white sm:text-8xl">
+                  <p className="text-6xl font-semibold leading-none tracking-tight text-white sm:text-8xl">
                     {formatTemperature(current.temperature)}
                   </p>
                 </div>
