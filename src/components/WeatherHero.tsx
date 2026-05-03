@@ -53,7 +53,7 @@ export function WeatherHero({
             <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-medium uppercase text-zinc-500">Now in</p>
-                <h2 className="mt-1 truncate text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                <h2 className="mt-1 max-w-full text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
                   {city.name}
                 </h2>
                 <div className="mt-3 flex items-center gap-3 text-base font-medium text-zinc-300">
