@@ -29,11 +29,11 @@ export function WeatherHero({
   const current = weather.current;
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl sm:p-7">
+    <section className="relative min-w-0 overflow-hidden rounded-lg border border-zinc-800/90 bg-zinc-950/75 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl sm:p-7">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/70 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(125,211,252,0.18),transparent_30%),radial-gradient(circle_at_82%_4%,rgba(253,224,71,0.14),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.07),transparent_42%)]" />
 
-      <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-stretch">
+      <div className="relative grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-stretch">
         <div className="flex min-w-0 flex-col justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +98,7 @@ export function WeatherHero({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-4">
+        <div className="min-w-0 space-y-4 lg:flex lg:flex-col lg:justify-between lg:space-y-0">
           <PixelWeatherScene
             condition={current.conditionKey}
             isDay={current.isDay}
@@ -142,12 +142,14 @@ function HeroLine({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-3">
+    <div className="min-w-0 rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-3 sm:flex sm:items-center sm:justify-between sm:gap-3">
       <div className="flex min-w-0 items-center gap-2 text-sm text-zinc-400">
         <span className="text-sky-100">{icon}</span>
-        <span className="truncate">{label}</span>
+        <span className="min-w-0">{label}</span>
       </div>
-      <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
+      <p className="mt-2 text-xl font-semibold tracking-tight text-white sm:mt-0 sm:shrink-0 sm:text-sm sm:tracking-normal">
+        {value}
+      </p>
     </div>
   );
 }

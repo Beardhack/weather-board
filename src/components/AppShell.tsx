@@ -16,7 +16,7 @@ export function AppShell({ cities, selectedCityId, onSelectCity, children }: App
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_14%_-10%,rgba(125,211,252,0.22),transparent_34%),radial-gradient(circle_at_78%_3%,rgba(253,224,71,0.14),transparent_26%),radial-gradient(circle_at_86%_82%,rgba(244,114,182,0.14),transparent_32%),linear-gradient(180deg,rgba(24,24,27,0.9),rgba(9,9,11,0.98))]" />
       <div className="pointer-events-none fixed inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:44px_44px]" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
-        <header className="space-y-4">
+        <header className="min-w-0 space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/75 px-2.5 py-1 text-xs font-semibold uppercase text-sky-100 shadow-sm">
@@ -33,7 +33,7 @@ export function AppShell({ cities, selectedCityId, onSelectCity, children }: App
           </div>
           <CitySelector cities={cities} selectedCityId={selectedCityId} onSelectCity={onSelectCity} />
         </header>
-        <main className="flex-1 py-5">{children}</main>
+        <main className="min-w-0 flex-1 py-5">{children}</main>
       </div>
     </div>
   );

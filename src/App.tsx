@@ -143,7 +143,7 @@ function App() {
 
   return (
     <AppShell cities={CITIES} selectedCityId={selectedCity.id} onSelectCity={handleSelectCity}>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-5">
           {selectedState.data ? (
             <>
