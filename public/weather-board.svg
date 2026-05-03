@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Weather Board">
+  <rect width="128" height="128" rx="24" fill="#101214"/>
+  <circle cx="48" cy="46" r="22" fill="#f6c86f"/>
+  <path d="M44 88h50a18 18 0 0 0 1.6-35.9A25.5 25.5 0 0 0 47.8 62 14 14 0 1 0 44 88Z" fill="#bce7df"/>
+  <path d="M35 101h58" stroke="#f08f7f" stroke-width="8" stroke-linecap="round"/>
+</svg>
