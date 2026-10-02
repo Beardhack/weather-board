@@ -1,71 +1,268 @@
-import { Activity } from "lucide-react";
-import type { CityConfig, HourlyForecastPoint } from "../types/weather";
-import { formatApiTimeLabel, formatPrecipitation, formatTemperature } from "../lib/formatting";
+import type {
+  CityConfig,
+  CityWeather,
+  HourlyForecastPoint,
+} from "../types/weather";
+import {
+  dateTitle,
+  formatAmount,
+  formatDateLabel,
+  formatHour,
+  formatHumidity,
+  formatLocalTime,
+  formatPrecipitation,
+  formatTemperature,
+  formatWindSpeed,
+  groupHours,
+  HOUR_MS,
+  localDate,
+  selectHours,
+  type ForecastView,
+} from "../lib/formatting";
 import { PixelWeatherGlyph } from "./PixelWeatherArt";
-
-type HourlyForecastProps = {
+import { ChevronDown, Droplets, Wind } from "lucide-react";
+export function NextHours({
+  city,
+  weather,
+  now,
+}: {
   city: CityConfig;
-  points: HourlyForecastPoint[];
-};
-
-export function HourlyForecast({ city, points }: HourlyForecastProps) {
-  const temperatures = points.map((point) => point.temperature);
-  const min = Math.min(...temperatures);
-  const max = Math.max(...temperatures);
-
+  weather: CityWeather;
+  now: number;
+}) {
+  const points = selectHours(
+    weather.hourly,
+    "next48",
+    now,
+    city.timezone,
+  ).slice(0, 6);
   return (
-    <section className="rounded-lg border border-zinc-800/90 bg-zinc-950/70 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.3)] backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-white">Next 24 Hours</h2>
-          <p className="mt-1 text-sm text-zinc-400">Temperature and precipitation by hour.</p>
-        </div>
-        <Activity aria-hidden="true" className="h-5 w-5 text-amber-100" />
+    <section className="next-panel" aria-labelledby="next-title">
+      <div className="section-heading">
+        <h2 id="next-title">The next few hours</h2>
+        <span>At a glance</span>
       </div>
-      <div className="mt-5 overflow-x-auto pb-2">
-        <div className="flex min-w-max items-end gap-2">
-          {points.map((point) => (
-            <HourlyPoint key={point.time} city={city} point={point} min={min} max={max} />
+      {points.length ? (
+        <div
+          className="next-grid"
+          role="region"
+          aria-label="Next six hours"
+          tabIndex={0}
+        >
+          {points.map((p) => (
+            <div className="next-card" key={p.time}>
+              <time dateTime={new Date(p.time).toISOString()}>
+                {formatLocalTime(city.timezone, p.time)}
+              </time>
+              <PixelWeatherGlyph
+                condition={p.conditionKey}
+                isDay={p.isDay}
+                size="sm"
+                label={p.conditionLabel}
+              />
+              <strong>{formatTemperature(p.temperature)}</strong>
+              <span
+                className="rain-chance"
+                title="Chance of precipitation in the hour ending at this time"
+              >
+                <Droplets size={12} aria-hidden="true" />
+                {formatPrecipitation(p.precipitationProbability)}
+              </span>
+            </div>
           ))}
         </div>
-      </div>
+      ) : (
+        <p className="empty-state">
+          No upcoming hours remain in this saved forecast. Refresh when
+          connected.
+        </p>
+      )}
     </section>
   );
 }
-
-function HourlyPoint({
+export function HourlyForecast({
   city,
-  point,
-  min,
-  max,
+  weather,
+  now,
+  view,
+  onView,
 }: {
   city: CityConfig;
-  point: HourlyForecastPoint;
-  min: number;
-  max: number;
+  weather: CityWeather;
+  now: number;
+  view: ForecastView;
+  onView: (view: ForecastView) => void;
 }) {
-  const range = Math.max(max - min, 1);
-  const height = 34 + ((point.temperature - min) / range) * 58;
-
+  const points = selectHours(weather.hourly, view, now, city.timezone);
+  const today = localDate(now, city.timezone);
+  const dates = [
+    ...new Set(weather.hourly.map((p) => localDate(p.time, city.timezone))),
+  ].filter((d) => d >= today);
+  const selectedDate = view.startsWith("date:") ? view.slice(5) : "";
+  if (selectedDate && !dates.includes(selectedDate)) dates.push(selectedDate);
   return (
-    <article className="flex w-[72px] shrink-0 flex-col items-center rounded-lg border border-zinc-800 bg-zinc-900/55 px-2 py-3">
-      <p className="text-[11px] font-medium text-zinc-500">{formatApiTimeLabel(point.time, city.timezone)}</p>
-      <div className="mt-3 flex h-28 items-end">
+    <section
+      id="hourly"
+      className="hourly-panel panel"
+      aria-labelledby="hourly-title"
+      tabIndex={-1}
+    >
+      <div className="hourly-heading">
+        <div>
+          <p className="eyebrow">PLAN YOUR DAY</p>
+          <h2 id="hourly-title">Hourly forecast</h2>
+        </div>
+        <span className="zone-label">{city.timezone.replace(/_/g, " ")}</span>
+      </div>
+      <div className="forecast-controls">
         <div
-          className="w-3 rounded-full bg-gradient-to-t from-sky-300 via-amber-200 to-pink-300 shadow-[0_0_22px_rgba(125,211,252,0.2)]"
-          style={{ height }}
-          aria-hidden="true"
-        />
+          className="view-buttons"
+          role="group"
+          aria-label="Hourly forecast range"
+        >
+          {(
+            [
+              ["next48", "Next 48 hours"],
+              ["today", "Today"],
+              ["tomorrow", "Tomorrow"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={view === value}
+              onClick={() => onView(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="date-picker">
+          <span className="sr-only">Choose forecast date</span>
+          <select
+            value={selectedDate}
+            onChange={(event) => {
+              if (event.target.value) onView(`date:${event.target.value}`);
+            }}
+          >
+            <option value="" disabled>
+              Pick a date
+            </option>
+            {dates.sort().map((d) => (
+              <option value={d} key={d}>
+                {formatDateLabel(d)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
-      <p className="mt-3 text-sm font-semibold tracking-tight text-white">
-        {formatTemperature(point.temperature)}
+      <p className="hourly-explainer">
+        Local times · °F · Select an hour for details. Precipitation chance,
+        amount and gusts cover the hour ending at the listed time.{" "}
+        <span>— means unavailable.</span>
       </p>
-      <div className="mt-2 rounded border border-zinc-800 bg-zinc-950/70 p-1">
-        <PixelWeatherGlyph condition={point.conditionKey} size="sm" label={point.conditionLabel} />
+      {view === "next48" && points.length > 0 && points.length < 48 && (
+        <p className="range-notice">
+          Only {points.length} upcoming hours remain in this forecast.
+        </p>
+      )}
+      <div className="hourly-columns" aria-hidden="true">
+        <span>Time</span>
+        <span>Conditions</span>
+        <span>Temp</span>
+        <span>Precip.</span>
+        <span>Wind</span>
+        <span />
       </div>
-      <p className="mt-1 text-[11px] font-medium text-sky-100">
-        {formatPrecipitation(point.precipitationProbability)}
-      </p>
-    </article>
+      {!points.length && (
+        <p className="empty-state">
+          No hourly data for this range. Choose another date or refresh the
+          forecast.
+        </p>
+      )}
+      {groupHours(points, city.timezone).map(([date, hours]) => (
+        <div className="hour-group" key={date}>
+          <h3>
+            {dateTitle(date, today)} <span>{formatDateLabel(date)}</span>
+          </h3>
+          {hours.map((point) => (
+            <HourlyRow
+              key={`${city.id}:${point.time}`}
+              point={point}
+              city={city}
+              past={point.time < now}
+            />
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+function HourlyRow({
+  point: p,
+  city,
+  past,
+}: {
+  point: HourlyForecastPoint;
+  city: CityConfig;
+  past: boolean;
+}) {
+  return (
+    <details className={`hour-row ${past ? "past-hour" : ""}`}>
+      <summary>
+        <span className="hour-time">
+          <time dateTime={new Date(p.time).toISOString()}>
+            {formatHour(p.time, city.timezone)}
+          </time>
+          {past && <small>Earlier</small>}
+        </span>
+        <span className="hour-condition">
+          <PixelWeatherGlyph
+            condition={p.conditionKey}
+            isDay={p.isDay}
+            size="sm"
+            label={p.conditionLabel}
+          />
+          <span>{p.conditionLabel}</span>
+        </span>
+        <strong className="hour-temp">
+          {formatTemperature(p.temperature)}
+        </strong>
+        <span className="hour-precip">
+          <Droplets size={13} aria-hidden="true" />
+          {formatPrecipitation(p.precipitationProbability)}
+        </span>
+        <span className="hour-wind">
+          <Wind size={13} aria-hidden="true" />
+          {formatWindSpeed(p.windSpeed)}
+        </span>
+        <ChevronDown size={15} className="row-chevron" aria-hidden="true" />
+      </summary>
+      <div className="hour-details">
+        <p className="interval-note">
+          Precipitation & gust interval:{" "}
+          {formatHour(p.time - HOUR_MS, city.timezone)} –{" "}
+          {formatHour(p.time, city.timezone)}
+        </p>
+        <dl>
+          <div>
+            <dt>Feels like</dt>
+            <dd>{formatTemperature(p.apparentTemperature)}</dd>
+          </div>
+          <div>
+            <dt>Precip. amount</dt>
+            <dd>{formatAmount(p.precipitationAmount)}</dd>
+          </div>
+          <div>
+            <dt>Wind gusts</dt>
+            <dd>{formatWindSpeed(p.windGusts)}</dd>
+          </div>
+          <div>
+            <dt>Humidity</dt>
+            <dd>{formatHumidity(p.humidity)}</dd>
+          </div>
+        </dl>
+      </div>
+    </details>
   );
 }

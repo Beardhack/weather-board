@@ -1,227 +1,144 @@
 import type {
   CityConfig,
   CityWeather,
-  CurrentWeather,
-  DailyForecastPoint,
+  Conditions,
   HourlyForecastPoint,
 } from "../types/weather";
-import { normalizeDailyForecast, selectNext24Hours } from "./formatting";
 import { getWeatherCodeInfo } from "./weatherCodes";
-
-const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
-
-type OpenMeteoCurrent = {
-  time?: string;
-  temperature_2m?: number;
-  apparent_temperature?: number;
-  relative_humidity_2m?: number;
-  weather_code?: number;
-  is_day?: number;
-  wind_speed_10m?: number;
+export const finite = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+const percent = (value: unknown) => {
+  const n = finite(value);
+  return n !== null && n >= 0 && n <= 100 ? n : null;
 };
-
-type OpenMeteoHourly = {
-  time?: string[];
-  temperature_2m?: number[];
-  precipitation_probability?: Array<number | null>;
-  weather_code?: number[];
+const nonnegative = (value: unknown) => {
+  const n = finite(value);
+  return n !== null && n >= 0 ? n : null;
 };
-
-type OpenMeteoDaily = {
-  time?: string[];
-  weather_code?: number[];
-  temperature_2m_max?: number[];
-  temperature_2m_min?: number[];
-  precipitation_probability_max?: Array<number | null>;
-  sunrise?: string[];
-  sunset?: string[];
+const epoch = (value: unknown) => {
+  const n = finite(value);
+  return n !== null && n > 0 && n < 8.64e12 ? n * 1000 : null;
 };
-
-type OpenMeteoResponse = {
-  current?: OpenMeteoCurrent;
-  hourly?: OpenMeteoHourly;
-  daily?: OpenMeteoDaily;
-};
-
-export async function fetchCityWeather(city: CityConfig): Promise<CityWeather> {
-  const response = await fetch(buildForecastUrl(city));
-
-  if (!response.ok) {
-    throw new Error(`Open-Meteo returned ${response.status}.`);
-  }
-
-  const payload = (await response.json()) as OpenMeteoResponse;
-  return normalizeOpenMeteoResponse(payload, city);
+export function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
-
-function buildForecastUrl(city: CityConfig): string {
+const array = (value: unknown): unknown[] =>
+  Array.isArray(value) ? value : [];
+function conditions(row: Record<string, unknown>): Conditions {
+  const weatherCode = finite(row.weather_code);
+  const condition = getWeatherCodeInfo(weatherCode);
+  return {
+    temperature: finite(row.temperature_2m),
+    apparentTemperature: finite(row.apparent_temperature),
+    weatherCode,
+    conditionLabel: condition.label,
+    conditionKey: condition.key,
+    isDay: row.is_day === 1 ? true : row.is_day === 0 ? false : null,
+    windSpeed: nonnegative(row.wind_speed_10m),
+    humidity: percent(row.relative_humidity_2m),
+  };
+}
+function rowAt(
+  data: Record<string, unknown>,
+  i: number,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, array(value)[i]]),
+  );
+}
+export function buildForecastUrl(city: CityConfig): string {
+  const fields =
+    "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m";
   const params = new URLSearchParams({
     latitude: String(city.latitude),
     longitude: String(city.longitude),
     timezone: city.timezone,
+    timeformat: "unixtime",
     forecast_days: "7",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
     precipitation_unit: "inch",
-    current: [
-      "temperature_2m",
-      "relative_humidity_2m",
-      "apparent_temperature",
-      "is_day",
-      "weather_code",
-      "wind_speed_10m",
-    ].join(","),
-    hourly: ["temperature_2m", "precipitation_probability", "weather_code"].join(","),
-    daily: [
-      "weather_code",
-      "temperature_2m_max",
-      "temperature_2m_min",
-      "precipitation_probability_max",
-      "sunrise",
-      "sunset",
-    ].join(","),
+    current: fields,
+    hourly: `${fields},precipitation_probability,precipitation,wind_gusts_10m`,
+    daily:
+      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset",
   });
-
-  return `${FORECAST_ENDPOINT}?${params.toString()}`;
+  return `https://api.open-meteo.com/v1/forecast?${params}`;
 }
-
-function normalizeOpenMeteoResponse(payload: OpenMeteoResponse, city: CityConfig): CityWeather {
-  const hourly = normalizeHourlyForecast(payload.hourly);
-  const next24Hours = selectNext24Hours(hourly, payload.current?.time);
-  const currentPrecipitation = findCurrentPrecipitation(next24Hours, payload.current?.time);
-  const current = normalizeCurrentWeather(payload.current, currentPrecipitation);
-  const daily = normalizeDailyForecast(normalizeDaily(payload.daily));
-
-  if (next24Hours.length === 0 || daily.length === 0) {
-    throw new Error("Open-Meteo returned an incomplete forecast.");
+export async function fetchCityWeather(
+  city: CityConfig,
+  signal?: AbortSignal,
+): Promise<CityWeather> {
+  const response = await fetch(buildForecastUrl(city), { signal });
+  if (!response.ok)
+    throw new Error(`Weather service returned ${response.status}.`);
+  return normalizeOpenMeteoResponse(await response.json(), city);
+}
+export function normalizeOpenMeteoResponse(
+  input: unknown,
+  city: CityConfig,
+  fetchedAt = Date.now(),
+): CityWeather {
+  const payload = record(input);
+  if (payload.error)
+    throw new Error("Weather service could not provide this forecast.");
+  const rawHourly = record(payload.hourly);
+  const seen = new Set<number>();
+  const hourly: HourlyForecastPoint[] = array(rawHourly.time)
+    .flatMap((value, index) => {
+      const time = epoch(value);
+      if (time === null || seen.has(time)) return [];
+      seen.add(time);
+      const row = rowAt(rawHourly, index);
+      return [
+        {
+          ...conditions(row),
+          time,
+          precipitationProbability: percent(row.precipitation_probability),
+          precipitationAmount: nonnegative(row.precipitation),
+          windGusts: nonnegative(row.wind_gusts_10m),
+        },
+      ];
+    })
+    .sort((a, b) => a.time - b.time);
+  const rawDaily = record(payload.daily);
+  const offset = finite(payload.utc_offset_seconds);
+  const daily = array(rawDaily.time).flatMap((value, index) => {
+    const time = epoch(value);
+    if (time === null || offset === null || Math.abs(offset) > 86400) return [];
+    const row = rowAt(rawDaily, index);
+    const weatherCode = finite(row.weather_code);
+    const info = getWeatherCodeInfo(weatherCode);
+    return [
+      {
+        // Provider daily epochs encode calendar labels with utc_offset_seconds,
+        // not instants to reinterpret with a DST-varying offset.
+        date: new Date(time + offset * 1000).toISOString().slice(0, 10),
+        weatherCode,
+        conditionKey: info.key,
+        conditionLabel: info.label,
+        highTemperature: finite(row.temperature_2m_max),
+        lowTemperature: finite(row.temperature_2m_min),
+        precipitationProbability: percent(row.precipitation_probability_max),
+        sunrise: epoch(row.sunrise),
+        sunset: epoch(row.sunset),
+      },
+    ];
+  });
+  if (
+    !hourly.length ||
+    !hourly.some((p) => p.temperature !== null || p.weatherCode !== null)
+  ) {
+    throw new Error("Weather service returned an incomplete hourly forecast.");
   }
-
+  const rawCurrent = record(payload.current);
   return {
     cityId: city.id,
-    current,
-    next24Hours,
+    current: { ...conditions(rawCurrent), time: epoch(rawCurrent.time) },
+    hourly,
     daily,
-    fetchedAt: Date.now(),
+    fetchedAt,
   };
-}
-
-function normalizeCurrentWeather(
-  current: OpenMeteoCurrent | undefined,
-  precipitationProbability: number | null,
-): CurrentWeather {
-  if (!current || typeof current.temperature_2m !== "number") {
-    throw new Error("Open-Meteo returned missing current conditions.");
-  }
-
-  const weatherCode = numberOrFallback(current.weather_code, -1);
-  const condition = getWeatherCodeInfo(weatherCode);
-
-  return {
-    time: stringOrFallback(current.time, ""),
-    temperature: current.temperature_2m,
-    apparentTemperature: numberOrFallback(current.apparent_temperature, current.temperature_2m),
-    weatherCode,
-    conditionLabel: condition.label,
-    conditionKey: condition.key,
-    isDay: current.is_day !== 0,
-    windSpeed: numberOrFallback(current.wind_speed_10m, 0),
-    humidity: nullableNumber(current.relative_humidity_2m),
-    precipitationProbability,
-  };
-}
-
-function normalizeHourlyForecast(hourly: OpenMeteoHourly | undefined): HourlyForecastPoint[] {
-  const times = hourly?.time ?? [];
-  const temperatures = hourly?.temperature_2m ?? [];
-  const precipitation = hourly?.precipitation_probability ?? [];
-  const weatherCodes = hourly?.weather_code ?? [];
-  const length = Math.min(times.length, temperatures.length, weatherCodes.length);
-
-  return Array.from({ length }, (_, index) => {
-    const weatherCode = numberOrFallback(weatherCodes[index], -1);
-    const condition = getWeatherCodeInfo(weatherCode);
-
-    return {
-      time: times[index],
-      temperature: temperatures[index],
-      precipitationProbability: nullableNumber(precipitation[index]),
-      weatherCode,
-      conditionLabel: condition.label,
-      conditionKey: condition.key,
-    };
-  }).filter((point) => Boolean(point.time) && Number.isFinite(point.temperature));
-}
-
-function normalizeDaily(daily: OpenMeteoDaily | undefined): DailyForecastPoint[] {
-  const dates = daily?.time ?? [];
-  const weatherCodes = daily?.weather_code ?? [];
-  const highs = daily?.temperature_2m_max ?? [];
-  const lows = daily?.temperature_2m_min ?? [];
-  const precipitation = daily?.precipitation_probability_max ?? [];
-  const sunrise = daily?.sunrise ?? [];
-  const sunset = daily?.sunset ?? [];
-  const length = Math.min(dates.length, weatherCodes.length, highs.length, lows.length);
-
-  return Array.from({ length }, (_, index) => {
-    const weatherCode = numberOrFallback(weatherCodes[index], -1);
-    const condition = getWeatherCodeInfo(weatherCode);
-
-    return {
-      date: dates[index],
-      weatherCode,
-      conditionLabel: condition.label,
-      conditionKey: condition.key,
-      highTemperature: highs[index],
-      lowTemperature: lows[index],
-      precipitationProbability: nullableNumber(precipitation[index]),
-      sunrise: stringOrNull(sunrise[index]),
-      sunset: stringOrNull(sunset[index]),
-    };
-  }).filter(
-    (day) =>
-      Boolean(day.date) &&
-      Number.isFinite(day.highTemperature) &&
-      Number.isFinite(day.lowTemperature),
-  );
-}
-
-function findCurrentPrecipitation(
-  next24Hours: HourlyForecastPoint[],
-  currentTime: string | undefined,
-): number | null {
-  if (next24Hours.length === 0) {
-    return null;
-  }
-
-  const currentHour = currentTime ? `${currentTime.slice(0, 13)}:00` : "";
-  const exact = next24Hours.find((point) => point.time === currentHour);
-
-  return exact?.precipitationProbability ?? next24Hours[0].precipitationProbability;
-}
-
-function numberOrFallback(value: number | undefined, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function nullableNumber(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function stringOrFallback(value: string | undefined, fallback: string): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function stringOrNull(value: string | undefined): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-export function buildMissingDataMessage(cityName: string): string {
-  return `Weather data for ${cityName} is unavailable right now. Try again in a moment.`;
-}
-
-export function formatApiFailureMessage(cityName: string, error: unknown): string {
-  const detail = error instanceof Error ? error.message : "The forecast request failed.";
-  const suffix = detail.length > 0 ? ` ${detail}` : "";
-
-  return `Could not refresh ${cityName}.${suffix}`;
 }

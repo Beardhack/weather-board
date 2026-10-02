@@ -7,7 +7,6 @@ export type CityConfig = {
   longitude: number;
   timezone: string;
 };
-
 export type WeatherConditionKey =
   | "clear"
   | "partly-cloudy"
@@ -18,61 +17,46 @@ export type WeatherConditionKey =
   | "snow"
   | "storm"
   | "unknown";
-
-export type CurrentWeather = {
-  time: string;
-  temperature: number;
-  apparentTemperature: number;
-  weatherCode: number;
+export type Conditions = {
+  temperature: number | null;
+  apparentTemperature: number | null;
+  weatherCode: number | null;
   conditionLabel: string;
   conditionKey: WeatherConditionKey;
-  isDay: boolean;
-  windSpeed: number;
+  isDay: boolean | null;
+  windSpeed: number | null;
   humidity: number | null;
-  precipitationProbability: number | null;
 };
-
-export type HourlyForecastPoint = {
-  time: string;
-  temperature: number;
+export type CurrentWeather = Conditions & { time: number | null };
+export type HourlyForecastPoint = Conditions & {
+  /** UTC epoch milliseconds. Precipitation and gusts cover the hour ENDING here. */
+  time: number;
   precipitationProbability: number | null;
-  weatherCode: number;
-  conditionLabel: string;
-  conditionKey: WeatherConditionKey;
+  precipitationAmount: number | null;
+  windGusts: number | null;
 };
-
 export type DailyForecastPoint = {
   date: string;
-  weatherCode: number;
+  weatherCode: number | null;
   conditionLabel: string;
   conditionKey: WeatherConditionKey;
-  highTemperature: number;
-  lowTemperature: number;
+  highTemperature: number | null;
+  lowTemperature: number | null;
   precipitationProbability: number | null;
-  sunrise: string | null;
-  sunset: string | null;
+  sunrise: number | null;
+  sunset: number | null;
 };
-
 export type CityWeather = {
   cityId: string;
   current: CurrentWeather;
-  next24Hours: HourlyForecastPoint[];
+  hourly: HourlyForecastPoint[];
   daily: DailyForecastPoint[];
+  /** Retrieval time, not weather model issuance time. */
   fetchedAt: number;
 };
-
-export type WeatherCacheEntry = {
-  cityId: string;
-  data: CityWeather;
-  fetchedAt: number;
-};
-
-export type WeatherLoadStatus = "idle" | "loading" | "success" | "error";
-
 export type WeatherLoadState = {
-  status: WeatherLoadStatus;
+  status: "idle" | "loading" | "success" | "error";
   data: CityWeather | null;
   isRefreshing: boolean;
-  isStale: boolean;
   error: string | null;
 };

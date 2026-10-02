@@ -3,7 +3,7 @@ import type { WeatherConditionKey } from "../types/weather";
 
 type PixelWeatherArtProps = {
   condition: WeatherConditionKey;
-  isDay?: boolean;
+  isDay?: boolean | null;
   size?: "sm" | "md" | "lg";
   label?: string;
 };
@@ -12,6 +12,7 @@ type SpriteName =
   | "sun"
   | "moon"
   | "partly"
+  | "partly-night"
   | "cloud"
   | "fog"
   | "drizzle"
@@ -71,6 +72,18 @@ const SPRITES: Record<SpriteName, string[]> = {
     "..yyyyy.....",
     ".yyyyyyy....",
     "..yyyyy.....",
+    ".....cccc...",
+    "...ccccccc..",
+    "..ccccccccc.",
+    ".cccccccccc.",
+    "..cccccccc..",
+    "............",
+  ],
+  "partly-night": [
+    "...mmm......",
+    "..mmm.......",
+    ".mmm........",
+    "..mmmm......",
     ".....cccc...",
     "...ccccccc..",
     "..ccccccccc.",
@@ -170,7 +183,11 @@ export function PixelWeatherGlyph({
   const spriteName = getSpriteName(condition, isDay);
 
   return (
-    <span className="inline-flex items-center justify-center" aria-label={label} role="img">
+    <span
+      className="inline-flex items-center justify-center"
+      aria-label={label}
+      role="img"
+    >
       <PixelSprite sprite={SPRITES[spriteName]} pixelSize={PIXEL_SIZE[size]} />
     </span>
   );
@@ -187,13 +204,13 @@ export function PixelWeatherScene({
     <div className="pixel-panel relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 sm:p-4">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[length:12px_12px]" />
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-300 via-yellow-200 to-pink-300" />
-      <div className="relative flex items-center justify-between gap-4">
+      <div className="pixel-scene-meta relative flex items-center justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-sky-100">
-            Live Pixelcast
+            Pixelcast
           </p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            {isDay ? "Day mode" : "Night mode"}
+            {isDay === null ? "Forecast" : isDay ? "Day mode" : "Night mode"}
           </p>
         </div>
         <div className="flex gap-1" aria-hidden="true">
@@ -209,7 +226,7 @@ export function PixelWeatherScene({
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(56,189,248,0.18),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.2),rgba(7,10,18,0.78))]" />
         <div className="relative drop-shadow-[0_0_24px_rgba(45,212,191,0.18)]">
-          <PixelSprite sprite={SPRITES[spriteName]} pixelSize={9} />
+          <PixelSprite sprite={SPRITES[spriteName]} pixelSize={5} />
         </div>
         <PixelHorizon />
       </div>
@@ -217,7 +234,13 @@ export function PixelWeatherScene({
   );
 }
 
-function PixelSprite({ sprite, pixelSize }: { sprite: string[]; pixelSize: number }) {
+function PixelSprite({
+  sprite,
+  pixelSize,
+}: {
+  sprite: string[];
+  pixelSize: number;
+}) {
   const width = Math.max(...sprite.map((row) => row.length));
   const cells = sprite.flatMap((row, rowIndex) =>
     Array.from({ length: width }, (_, columnIndex) => ({
@@ -249,7 +272,10 @@ function PixelSprite({ sprite, pixelSize }: { sprite: string[]; pixelSize: numbe
 
 function PixelHorizon() {
   return (
-    <div className="absolute inset-x-0 bottom-0 grid h-7 grid-cols-12 items-end gap-px px-3 pb-3" aria-hidden="true">
+    <div
+      className="absolute inset-x-0 bottom-0 grid h-7 grid-cols-12 items-end gap-px px-3 pb-3"
+      aria-hidden="true"
+    >
       {[2, 4, 3, 6, 5, 3, 4, 7, 5, 4, 6, 3].map((height, index) => (
         <span
           key={`${height}-${index}`}
@@ -261,12 +287,15 @@ function PixelHorizon() {
   );
 }
 
-function getSpriteName(condition: WeatherConditionKey, isDay: boolean): SpriteName {
+export function getSpriteName(
+  condition: WeatherConditionKey,
+  isDay: boolean | null,
+): SpriteName {
   switch (condition) {
     case "clear":
-      return isDay ? "sun" : "moon";
+      return isDay === null ? "unknown" : isDay ? "sun" : "moon";
     case "partly-cloudy":
-      return "partly";
+      return isDay === null ? "cloud" : isDay ? "partly" : "partly-night";
     case "cloudy":
       return "cloud";
     case "fog":
